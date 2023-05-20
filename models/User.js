@@ -3,7 +3,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto');
 
-
 const UserSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -24,12 +23,27 @@ const UserSchema = new mongoose.Schema({
         minlength: [6, 'password cannot be shorted than 6 words'],
         select: false // to avoid password to come along with our query results.
     },
+    unVerfiedEmail: {
+        type: String,
+        unique: true,
+        trim: true,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email'
+        ]
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+
+    verificationToken: String,
+    verificationTokenExpire: Date,
 
     createdAt: {
         type: Date,
         default: Date.now
     }
-
 })
 
 
@@ -45,13 +59,23 @@ UserSchema.pre('save', async function (next) {
 
 /*In Mongoose, schema.methods is a property that allows you to add instance methods to your Mongoose models. Instance methods are methods that are available on individual documents retrieved from the database */
 
-// to check whether user input password matches with that of database one or not.
+/*to check whether user input password matches with that of database one or not. */
 UserSchema.methods.matchpassword = function (password) {
     return bcrypt.compare(password, this.password);
 }
 
 UserSchema.methods.getJwtToken = function () {
     return jwt.sign({ id: this._id, password: this.password }, process.env.JWT_SECRET);
+}
+
+/* To Generate a Random  Verfication Token to further create a url */
+UserSchema.methods.getVerficationtoken = function () {
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+
+    // Setting the verificationToken and VerificaitionTokenExpire here
+    this.verificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    this.verificationTokenExpire = Date.now() + 10 * 60 * 1000;
+    return verificationToken;
 }
 
 

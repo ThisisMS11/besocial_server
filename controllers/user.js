@@ -1,10 +1,11 @@
 const User = require('../models/User');
 const asyncHandler = require('../middleware/asyncHandler');
 const errorHandler = require('../utils/ErrorResponse');
+const SendEmail = require('../utils/EmailHandler');
+const crypto = require('crypto')
 
-exports.login = asyncHandler(async (req, res,next) => {
+exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
-
 
     if (!email || !password) {
         return next(new errorHandler('Please provide an email and password', 400));
@@ -25,9 +26,24 @@ exports.login = asyncHandler(async (req, res,next) => {
 
     res.json({ success: true, token: user.getJwtToken() });
 
-})
+});
 
-exports.register = asyncHandler(async (req, res,next) => {
+/*************************************************** */
+const sendTokenResponse = (user, statusCode, res) => {
+    const token = user.getJwtToken();
+
+    const options = {
+        expires: new Date(
+            Date.now() + 10 * 24 * 60 * 60 * 1000
+        ),
+        httpOnly: true,
+    }
+
+    res.status(statusCode).cookie('token', token, options).send({ status: true, token: token });
+}
+/********************************************************** */
+
+exports.register = asyncHandler(async (req, res, next) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -39,15 +55,103 @@ exports.register = asyncHandler(async (req, res,next) => {
     if (user) {
         return next(new errorHandler('User with the given email already exists', 400));
     }
+    
+    /* creating user in database */
+    user = await User.create({ name: name, email: email, unVerfiedEmail: email, password: password });
 
-    user = await User.create({ name: name, email: email, password: password });
+    // Creating a url for verifying user email
+    const VerificationToken = user.getVerficationtoken();
+    
+    await user.save({ validateBeforeSave: false });
 
-    res.send({ success: true, message: "user successfully created" });
+    const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
-})
+    const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+    // Sending the url to user email
+
+    try {
+        await SendEmail({
+            email: user.unVerfiedEmail,
+            subject: "Email Verification",
+            message
+        })
+        res.status(200).json({ success: true, data: `Email Sent with URL : ${verificationUrl}` });
+    } catch (error) {
+        console.log(error);
+        user.verificationToken = undefined;
+        user.verificationTokenExpire = undefined;
+        // user will still be saved but with unverified Email.
+        await user.save({ validateBeforeSave: false });
+        return next(new errorHandler('Email could not be sent', 500));
+    }
+});
+
+
+exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) {
+        return next(new errorHandler('Invalid Input', 404));
+    }
+    const VerificationToken = user.getVerficationtoken();
+
+    await user.save({ validateBeforeSave: false });
+
+    const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
+
+    const message = `Please verify your email by clicking on the link below: \n ${verificationUrl}`;
+
+    try {
+        await SendEmail({
+            email: user.email,
+            subject: 'Email Verification',
+            message
+        })
+        res.status(200).json({ success: true, data: `Email sent with url : ${verificationUrl}` });
+    }
+    catch (err) {
+        console.log(err);
+        user.verificationToken = undefined;
+        user.verificationTokenExpire = undefined;
+        await user.save({ validateBeforeSave: false });
+        return next(new errorHandler('Email could not be sent', 500));
+    }
+});
+
+exports.VerifyEmail = asyncHandler(async (req, res, next) => {
+    // this is to verify our email and setting isVerified for our user to true.
+
+    // fetching Verfication token from clicked url
+    const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    // finding corresponding user in database and checking verificaitonToken Expiry
+    const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } }).select('+password');
+
+    // If no user found with that token
+    if (!user) {
+        return next(new errorHandler('Invalid Token', 400));
+    }
+
+    user.isVerified = true;
+
+    // check if there exists a unverified email
+    if (user.unVerfiedEmail) {
+
+        // Setting Unverified Email and tokens to undefined as we do not require them anymore.
+        user.verificationToken = undefined;
+        user.verificationTokenExpire = undefined;
+        // setting verified email to unverified email on successful completion
+        user.email = user.unVerfiedEmail;
+        user.unVerfiedEmail = undefined;
+    }
+
+    await user.save({ validateBeforeSave: false });
+    sendTokenResponse(user, 200, res);
+});
+
 
 exports.logout = (asyncHandler(async (req, res) => {
-    
+
     /* To destroy the session on the backend side */
     req.session.destroy((err) => {
         if (err) throw err;
@@ -62,4 +166,4 @@ exports.logout = (asyncHandler(async (req, res) => {
     })
 
     res.status(200).send({ status: "success", data: {} })
-}))
+}));
