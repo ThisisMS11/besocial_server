@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const CommentSchema = new mongoose.Schema({
-    postID: {
+    postId: {
         type: mongoose.Schema.ObjectId,
         required: true,
         ref: 'Posts'
@@ -17,12 +17,10 @@ const CommentSchema = new mongoose.Schema({
             maxlength: 100,
         },
         likes: [{
-            userId: mongoose.Schema.ObjectId,
-            ref: 'Users',
+            type: mongoose.Schema.ObjectId
         }],
         dislikes: [{
-            userId: mongoose.Schema.ObjectId,
-            ref: 'Users'
+            type: mongoose.Schema.ObjectId
         }]
     }]
 })

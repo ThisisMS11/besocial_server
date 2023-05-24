@@ -31,12 +31,12 @@ const PostSchema = new mongoose.Schema({
 
 /*In MongoDB, virtual attributes, also known as virtual fields or computed fields, are attributes that are not stored directly in the database but are dynamically computed or derived from other fields. */
 
-// PostSchema.virtual('comments',{
-//     ref:'Comments',
-//     localField:'_id',
-//     foreignField:'post',
-//     justOne:false
-// });
+PostSchema.virtual('comments', {
+    ref: 'Comments',
+    localField: '_id',
+    foreignField: 'post',
+    justOne: false
+});
 
 
 module.exports = mongoose.model('Posts', PostSchema);
