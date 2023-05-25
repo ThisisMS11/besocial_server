@@ -3,6 +3,8 @@ const asyncHandler = require('../middleware/asyncHandler');
 const errorHandler = require('../utils/ErrorResponse');
 const SendEmail = require('../utils/EmailHandler');
 const crypto = require('crypto')
+const formidable = require('formidable');
+const cloudinary = require('../utils/Cloudinary');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -44,7 +46,30 @@ const sendTokenResponse = (user, statusCode, res) => {
 /********************************************************** */
 
 exports.register = asyncHandler(async (req, res, next) => {
-    const { name, email, password } = req.body;
+
+    let name, email, password, file;
+
+    /* reading data from formdata object send from client side. */
+    const form = formidable({ multiples: true });
+    
+    /* the form.parse() function is asynchronous, and it takes some time to complete the parsing process. Therefore, the code outside the form.parse() callback is executed before the parsing is finished. */
+
+    await new Promise((resolve, reject) => {
+        form.parse(req, (err, fields, files) => {
+            if (err) {
+                reject(new errorHandler(err, 400));
+            }
+
+            // Extract the values from the fields object
+            name = fields.username;
+            email = fields.email;
+            password = fields.password;
+            file = files.profilePic;
+
+            resolve();
+        });
+    });
+
 
     if (!name || !email || !password) {
         return next(new errorHandler('Please provide an email and password', 400));
@@ -55,13 +80,44 @@ exports.register = asyncHandler(async (req, res, next) => {
     if (user) {
         return next(new errorHandler('User with the given email already exists', 400));
     }
-    
+
     /* creating user in database */
     user = await User.create({ name: name, email: email, unVerfiedEmail: email, password: password });
 
-    // Creating a url for verifying user email
+    /*Cloudinary Stuff to upload the profile Pic*/
+
+    // Default picture in case file not found.
+    let profilePic = {
+        public_id: 'Screenshot_from_2023-05-25_22-34-21_nb2suf.png',
+        url: 'https://res.cloudinary.com/cloudinarymohit/image/upload/v1685034293/Screenshot_from_2023-05-25_22-34-21_nb2suf.png'
+    };
+
+    // if file exists
+    if (file) {
+        if (!file.mimetype.startsWith('image')) {
+            next(new errorHandler(`Please upload an image file`, 401));
+        }
+
+
+        try {
+            result = await cloudinary.uploader.upload(file.filepath, {
+                folder: 'profilePic'
+            })
+            profilePic = { public_id: result.public_id, url: result.secure_url }
+        } catch (err) {
+            console.log('cloudinary error : ', err);
+        }
+    }
+
+
+    user.profilePic = profilePic;
+    await user.save();
+    /* ******************************** */
+
+
+    /* Creating a url for verifying user email */
     const VerificationToken = user.getVerficationtoken();
-    
+
     await user.save({ validateBeforeSave: false });
 
     const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;

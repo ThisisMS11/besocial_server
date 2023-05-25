@@ -36,6 +36,14 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    profilePic: {
+        public_id: {
+            type: String
+        },
+        url: {
+            type: String
+        }
+    },
 
     verificationToken: String,
     verificationTokenExpire: Date,
