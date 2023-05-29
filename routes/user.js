@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authProtect')
-const { login, register, logout, VerifyEmail, resendEmailVerification } = require('../controllers/user');
+const { login, register, logout, getUserInfo, VerifyEmail, resendEmailVerification } = require('../controllers/user');
 
 
 router.post('/login', login);
 router.post('/register', register);
+router.route('/').get(protect, getUserInfo);
+
 router.route('/logout').get(protect, logout);
 
 // email verification stuff

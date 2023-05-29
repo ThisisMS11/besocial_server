@@ -51,7 +51,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 
     /* reading data from formdata object send from client side. */
     const form = formidable({ multiples: true });
-    
+
     /* the form.parse() function is asynchronous, and it takes some time to complete the parsing process. Therefore, the code outside the form.parse() callback is executed before the parsing is finished. */
 
     await new Promise((resolve, reject) => {
@@ -143,6 +143,11 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
 });
 
+exports.getUserInfo = asyncHandler(async (req, res, next) => {
+    if (req.user) {
+        res.status(200).json({ success: true, data: req.user });
+    }
+})
 
 exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
     const user = await User.findOne({ email: req.body.email });
