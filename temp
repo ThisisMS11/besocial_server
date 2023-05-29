@@ -1,1 +1,0 @@
-I was working on email verification and i Have sucessfully coded it now problem is when verificationtoken is send using register then verificationtoken is not getting set at the database end. wherease on doing with resendemailverificaition it does get set.

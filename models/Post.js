@@ -23,7 +23,24 @@ const PostSchema = new mongoose.Schema({
                 ref: 'Users'
             }
         }
-    ]
+    ],
+    photos: [{
+        public_id: {
+            type: String
+        },
+        url: {
+            type: String
+        }
+    }],
+    videos: [{
+        public_id: {
+            type: String
+        },
+        url: {
+            type: String
+        }
+    }]
+
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true }

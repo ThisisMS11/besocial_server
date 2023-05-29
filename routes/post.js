@@ -5,14 +5,15 @@ const { createNewPost, like, dislike, getPost,
     likeComment, dislikeComment, deleteComment, editComment, getComments, uploadImages, uploadVideos } = require('../controllers/post');
 
 const router = express.Router();
+const { mediaUpload } = require('../middleware/multer');
 
 
 /* CRUD POST*/
 router.route('/').post(protect, createNewPost);
 
 /* Media */
-router.route('/uploadImages/:postId').put(protect, uploadImages);
-router.route('/uploadVideos/:postId').put(protect, uploadVideos);
+router.route('/uploadImages/:postId').post(protect, mediaUpload, uploadImages);
+router.route('/uploadVideos/:postId').post(protect, mediaUpload, uploadVideos);
 
 
 /* Get Post */

@@ -1,8 +1,10 @@
 const Post = require('../models/Post');
 const Comment = require('../models/Comments');
-
+const formidable = require('formidable');
 const asyncHandler = require('../middleware/asyncHandler');
 const errorHandler = require('../utils/ErrorResponse');
+const Cloudinary = require('../utils/Cloudinary');
+const { getDataUri } = require('../utils/DataUri');
 
 /* Create a New Post */
 exports.createNewPost = asyncHandler(async (req, res, next) => {
@@ -20,34 +22,94 @@ exports.createNewPost = asyncHandler(async (req, res, next) => {
 
     res.status(200).send({ success: true, data: newPost })
 })
+
+
 /* Post Media */
 exports.uploadImages = asyncHandler(async (req, res, next) => {
-    const post = await Post.findById({ _id: req.params.postId });
+    // req.files is a array of files data.
+
+    const post = await Post.findById(req.params.postId);
+
     if (!post) {
-        next(new errorResponse(`No post found with id ${req.params.id}`, 401));
+        next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
     }
 
-    // ! Admin (permission checking)
-    if (post.user != req.user.id) {
-        next(new errorResponse(`Not authorized to upload images`, 401));
-    }
-    
+    const files = req.files;
     if (!req.files) {
-        next(new errorResponse(`Please upload a file`, 401));
+        next(new errorHandler(`Please upload some files`, 401));
     }
 
+    try {
+        for (const file of files) {
 
-    return;
+            if (!file.mimetype.startsWith('image')) {
+                next(new errorResponse(`Please upload a image file`, 401));
+            }
+
+            /* get the file data in uri format */
+            /*A Data URI (Uniform Resource Identifier) is a URI scheme that allows you to include data directly in a web page or application using inline data. It allows you to embed small files, such as images or text documents, directly into the HTML or CSS code without requiring a separate file. */
+
+            const filedata = getDataUri(file);
+            const result = await Cloudinary.uploader.upload(filedata.content, {
+                folder: 'Post_Photos'
+            });
+            post.photos.push({ public_id: result.public_id, url: result.secure_url });
+        }
+
+        res.status(200).send({ success: true, data: post });
+    } catch (error) {
+        console.log(error);
+        next(error);
+    }
+
+    await post.save();
+
+    res.status(200).send({ success: true, data: post })
 })
 
 exports.uploadVideos = asyncHandler(async (req, res, next) => {
-    return;
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+        next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
+    }
+
+    const files = req.files;
+    if (!req.files) {
+        next(new errorHandler(`Please upload some files`, 401));
+    }
+
+    if (req.files.length > 2) {
+        next(new errorHandler(`Can't upload more than 2 Videos at once.`, 401));
+    }
+
+    try {
+        for (const file of files) {
+
+            console.log(file);
+
+            if (!file.mimetype.startsWith('video')) {
+                next(new errorResponse(`Please upload a video file`, 401));
+            }
+
+            const filedata = getDataUri(file);
+            const result = await Cloudinary.uploader.upload(filedata.content, {
+                resource_type: 'video',
+                folder: 'Post_Videos',
+            });
+            post.videos.push({ public_id: result.public_id, url: result.secure_url });
+        }
+
+        res.status(200).send({ success: true, data: post });
+    } catch (error) {
+        console.log(error);
+        next(error);
+    }
+
+    await post.save();
+
+    res.status(200).send({ success: true, data: post })
 })
-
-
-
-
-
 
 
 exports.getPost = asyncHandler(async (req, res, next) => {
@@ -214,17 +276,17 @@ exports.editComment = asyncHandler(async (req, res, next) => {
     const comment = await Comment.findOne({ postId: req.params.postId });
 
     if (!comment) {
-        next(new errorResponse(`No post found with id ${req.params.postId}`, 401));
+        next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
     }
 
     const commentIndex = comment.content.findIndex((item) => item._id == req.params.commentId);
 
     if (commentIndex == -1) {
-        next(new errorResponse(`No comments found with id ${req.params.commentId}`, 401));
+        next(new errorHandler(`No comments found with id ${req.params.commentId}`, 401));
     }
 
     if (comment.content[commentIndex].user != req.user.id) {
-        next(new errorResponse(`Not authorized to edit the comment`, 401));
+        next(new errorHandler(`Not authorized to edit the comment`, 401));
     }
 
     comment.content[commentIndex].comment = req.body.comment;
@@ -239,7 +301,7 @@ exports.getComments = asyncHandler(async (req, res, next) => {
     let comment = await Comment.findOne({ postId: req.params.postId });
 
     if (!comment) {
-        next(new errorResponse(`No post found with id ${req.params.postId}`, 401));
+        next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
     }
 
     res.status(200).send({ success: true, comment: comment });
