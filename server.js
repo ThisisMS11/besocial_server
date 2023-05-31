@@ -11,7 +11,7 @@ dotenv.config({ path: './config/config.env' })
 
 /* importing routes here */
 const user = require('./routes/user');
-const post=require('./routes/post')
+const post = require('./routes/post')
 
 app.use(express.json());
 app.use(cookieParser());
@@ -37,13 +37,13 @@ app.use(
 )
 
 /* defining routes here */
-
-app.use('/temp', (req, res) => {
-    res.send(req.session);
+app.get('/', (req, res) => {
+    res.send("Hello World");
 });
 
+
 app.use('/api/v1/user', user);
-app.use('/api/v1/post',post)
+app.use('/api/v1/post', post)
 
 app.listen(process.env.PORT, () => {
     console.log("Server listening ... at port : ", process.env.PORT);

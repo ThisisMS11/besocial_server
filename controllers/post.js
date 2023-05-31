@@ -81,7 +81,7 @@ exports.uploadVideos = asyncHandler(async (req, res, next) => {
 
     try {
         for (const file of videos) {
-            
+
             if (!file.mimetype.startsWith('video')) {
                 next(new errorResponse(`Please upload a video file`, 401));
             }
@@ -113,6 +113,27 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     }
 
     res.status(200).send({ success: true, post: post });
+})
+
+
+/* Get all posts */
+exports.getAllPosts = asyncHandler(async (req, res, next) => {
+    const posts = await Post.find().populate([
+        { path: 'user', select: 'name profilePic' },
+        {
+            path: 'comments', select: 'content id',
+            populate: {
+                path: 'content.user',
+                select: 'name profilePic.url'
+            }
+        },
+    ]);
+
+    if (!posts) {
+        next(new errorHandler(`No posts found`, 401));
+    }
+
+    res.status(200).send({ success: true, posts: posts });
 })
 
 /* Like a Post */

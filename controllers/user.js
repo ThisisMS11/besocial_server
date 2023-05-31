@@ -5,6 +5,7 @@ const SendEmail = require('../utils/EmailHandler');
 const crypto = require('crypto')
 const formidable = require('formidable');
 const cloudinary = require('../utils/Cloudinary');
+const Post = require('../models/Post');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -147,6 +148,37 @@ exports.getUserInfo = asyncHandler(async (req, res, next) => {
     if (req.user) {
         res.status(200).json({ success: true, data: req.user });
     }
+})
+
+/* Get all users */
+exports.getAllUsers = asyncHandler(async (req, res, next) => {
+    const users = await User.find({}).select('name profilePic');
+
+    if (!users) {
+        return next(new errorHandler('No users found', 404));
+    }
+
+    res.status(200).json({ success: true, data: users });
+})
+
+/* To get specific User Posts */
+exports.getUserPosts = asyncHandler(async (req, res, next) => {
+    const posts = await Post.find({ user: req.user._id }).populate([
+        { path: 'user', select: 'name profilePic' },
+        {
+            path: 'comments', select: 'content id',
+            populate: {
+                path: 'content.user',
+                select: 'name profilePic.url'
+            }
+        }
+    ]);
+
+    if (!posts) {
+        return next(new errorHandler('No posts found', 404));
+    }
+
+    res.status(200).json({ success: true, data: posts });
 })
 
 exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
