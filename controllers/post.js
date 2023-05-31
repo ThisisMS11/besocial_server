@@ -34,36 +34,32 @@ exports.uploadImages = asyncHandler(async (req, res, next) => {
         next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
     }
 
-    const files = req.files;
-    if (!req.files) {
+    const images = req.files;
+
+    if (!images) {
         next(new errorHandler(`Please upload some files`, 401));
     }
 
     try {
-        for (const file of files) {
+        for (const file of images) {
+
+            const filedata = getDataUri(file);
 
             if (!file.mimetype.startsWith('image')) {
                 next(new errorResponse(`Please upload a image file`, 401));
             }
 
-            /* get the file data in uri format */
-            /*A Data URI (Uniform Resource Identifier) is a URI scheme that allows you to include data directly in a web page or application using inline data. It allows you to embed small files, such as images or text documents, directly into the HTML or CSS code without requiring a separate file. */
-
-            const filedata = getDataUri(file);
             const result = await Cloudinary.uploader.upload(filedata.content, {
                 folder: 'Post_Photos'
             });
             post.photos.push({ public_id: result.public_id, url: result.secure_url });
         }
 
-        res.status(200).send({ success: true, data: post });
     } catch (error) {
         console.log(error);
         next(error);
     }
-
     await post.save();
-
     res.status(200).send({ success: true, data: post })
 })
 
@@ -74,33 +70,30 @@ exports.uploadVideos = asyncHandler(async (req, res, next) => {
         next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
     }
 
-    const files = req.files;
-    if (!req.files) {
+    const videos = req.files;
+    if (!videos) {
         next(new errorHandler(`Please upload some files`, 401));
     }
 
-    if (req.files.length > 2) {
+    if (videos.length > 2) {
         next(new errorHandler(`Can't upload more than 2 Videos at once.`, 401));
     }
 
     try {
-        for (const file of files) {
-
-            console.log(file);
-
+        for (const file of videos) {
+            
             if (!file.mimetype.startsWith('video')) {
                 next(new errorResponse(`Please upload a video file`, 401));
             }
 
             const filedata = getDataUri(file);
+
             const result = await Cloudinary.uploader.upload(filedata.content, {
                 resource_type: 'video',
                 folder: 'Post_Videos',
             });
             post.videos.push({ public_id: result.public_id, url: result.secure_url });
         }
-
-        res.status(200).send({ success: true, data: post });
     } catch (error) {
         console.log(error);
         next(error);

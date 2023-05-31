@@ -12,6 +12,7 @@ router.route('/logout').get(protect, logout);
 
 // email verification stuff
 router.route('/verify/:token').get(VerifyEmail);
+router.route('/update').get(UpdateVerificationToken);
 router.route('/resendEmailVerification').put(resendEmailVerification);
 
 

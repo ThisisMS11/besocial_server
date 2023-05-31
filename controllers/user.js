@@ -188,6 +188,9 @@ exports.VerifyEmail = asyncHandler(async (req, res, next) => {
     // finding corresponding user in database and checking verificaitonToken Expiry
     const user = await User.findOne({ verificationToken: verificationToken, verificationTokenExpire: { $gt: Date.now() } }).select('+password');
 
+    /* for now */
+    // const user = await User.findOne({ verificationToken: verificationToken }).select('+password')
+
     // If no user found with that token
     if (!user) {
         return next(new errorHandler('Invalid Token', 400));
