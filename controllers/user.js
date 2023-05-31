@@ -213,6 +213,22 @@ exports.VerifyEmail = asyncHandler(async (req, res, next) => {
     sendTokenResponse(user, 200, res);
 });
 
+/* to update the expired verification token */
+exports.UpdateVerificationToken = asyncHandler(async (req, res, next) => {
+    const user = await User.findOne({ unVerfiedEmail: req.body.email });
+
+    if (!user) {
+        return next(new errorHandler('user not found', 404));
+    }
+
+    /* this call will update the user's verification token and verification token expiry */
+    user.getVerficationtoken();
+
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({ success: true, message: "Token has been updated try verifying email again." });
+})
+
 
 exports.logout = (asyncHandler(async (req, res) => {
 

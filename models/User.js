@@ -25,7 +25,6 @@ const UserSchema = new mongoose.Schema({
     },
     unVerfiedEmail: {
         type: String,
-        unique: true,
         trim: true,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
@@ -82,7 +81,8 @@ UserSchema.methods.getVerficationtoken = function () {
 
     // Setting the verificationToken and VerificaitionTokenExpire here
     this.verificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
-    this.verificationTokenExpire = Date.now() + 10 * 60 * 1000;
+    const noOfMinutes = 0.5;
+    this.verificationTokenExpire = Date.now() + noOfMinutes * 60 * 1000;
     return verificationToken;
 }
 
