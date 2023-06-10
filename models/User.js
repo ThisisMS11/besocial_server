@@ -43,6 +43,19 @@ const UserSchema = new mongoose.Schema({
             type: String
         }
     },
+    followers: [{
+        userId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Users'
+        }
+    }],
+    following: [{
+        userId: {
+            type: mongoose.Schema.ObjectId,
+            ref: 'Users'
+        }
+    }],
+    
 
     verificationToken: String,
     verificationTokenExpire: Date,
