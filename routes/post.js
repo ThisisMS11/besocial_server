@@ -2,7 +2,7 @@ const express = require('express');
 const { protect } = require('../middleware/authProtect')
 const { createNewPost, like, dislike, getPost,
     addNewComment,
-    likeComment, dislikeComment, deleteComment, editComment, getComments, uploadImages, uploadVideos, getAllPosts } = require('../controllers/post');
+    likeComment, dislikeComment, deleteComment, editComment, getComments, uploadImages, uploadVideos, getAllPosts ,deletePost} = require('../controllers/post');
 
 const router = express.Router();
 const { mediaUpload } = require('../middleware/multer');
@@ -23,6 +23,9 @@ router.route('/:postID').get(protect, getPost);
 /* Post Engagements */
 router.route('/like/:postId').put(protect, like);
 router.route('/dislike/:postId').put(protect, dislike);
+
+/* delete the post */
+router.route('/delete/:postId').delete(protect, deletePost);
 
 // router.route('/:id').delete(protect, deletePost).get(protect, getPostDetails)
 

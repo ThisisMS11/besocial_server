@@ -173,6 +173,19 @@ exports.dislike = asyncHandler(async (req, res, next) => {
     res.status(200).send({ success: true, data: post })
 })
 
+/* delete the post */
+exports.deletePost = asyncHandler(async (req, res, next) => {
+    // finding the post
+    const post = await Post.findByIdAndDelete({ _id: req.params.postId });
+
+    if (!post) {
+        next(new errorHandler(`No post found with id ${req.params.postId}`, 401));
+    }
+
+    res.status(200).send({ success: true, data: post })
+})
+
+
 /* Comment Exports */
 
 exports.addNewComment = asyncHandler(async (req, res, next) => {

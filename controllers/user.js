@@ -161,6 +161,41 @@ exports.getAllUsers = asyncHandler(async (req, res, next) => {
     res.status(200).json({ success: true, data: users });
 })
 
+/* Get a user information based on his userid */
+exports.getOtherUserInfo = asyncHandler(async (req, res, next) => {
+    const userId = req.params.userId;
+
+    /* for find user information */
+    const user = await User.findById(userId);
+
+    if (!user) {
+        return next(new errorHandler('No user found', 404));
+    }
+
+    res.status(200).json({ success: true, data: user});
+})
+
+/* get other user posts */
+exports.getOtherUserPosts = asyncHandler(async (req, res, next) => {
+    const userId=req.params.userId;
+    const posts = await Post.find({ user: userId }).populate([
+        { path: 'user', select: 'name profilePic' },
+        {
+            path: 'comments', select: 'content id',
+            populate: {
+                path: 'content.user',
+                select: 'name profilePic.url'
+            }
+        }
+    ]);
+
+    if (!posts) {
+        return next(new errorHandler('No posts found', 404));
+    }
+
+    res.status(200).json({ success: true, data: posts });
+})
+
 /* To get specific User Posts */
 exports.getUserPosts = asyncHandler(async (req, res, next) => {
     const posts = await Post.find({ user: req.user._id }).populate([
