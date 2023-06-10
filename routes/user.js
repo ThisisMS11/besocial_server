@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authProtect')
-const { login, register, logout, getUserInfo, VerifyEmail, resendEmailVerification, UpdateVerificationToken, getUserPosts, getAllUsers, getOtherUserInfo, getOtherUserPosts } = require('../controllers/user');
+const { login, register, logout, getUserInfo, VerifyEmail, resendEmailVerification, UpdateVerificationToken, getUserPosts, getAllUsers, getOtherUserInfo, getOtherUserPosts,followUser,unfollowUser } = require('../controllers/user');
 
 
 router.post('/login', login);
@@ -14,6 +14,10 @@ router.route('/verify/:token').get(VerifyEmail);
 router.route('/updateVerificationToken').put(UpdateVerificationToken);
 router.route('/resendEmailVerification').put(resendEmailVerification);
 
+
+// User Activites 
+router.route('/follow/:userId').put(protect, followUser);
+router.route('/unfollow/:userId').put(protect, unfollowUser);
 
 /* Get user */
 router.route('/').get(protect, getUserInfo);

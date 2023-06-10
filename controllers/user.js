@@ -144,10 +144,16 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
 });
 
+/* Get User information */
 exports.getUserInfo = asyncHandler(async (req, res, next) => {
-    if (req.user) {
-        res.status(200).json({ success: true, data: req.user });
-    }
+
+    const myself = await User.findById(req.user._id).select('-password').populate([
+        { path: 'following', select: 'name profilePic.url' },
+        { path: 'followers', select: 'name profilePic.url' },
+    ])
+    await myself.save();
+
+    res.status(200).json({ success: true, data: myself });
 })
 
 /* Get all users */
@@ -172,12 +178,12 @@ exports.getOtherUserInfo = asyncHandler(async (req, res, next) => {
         return next(new errorHandler('No user found', 404));
     }
 
-    res.status(200).json({ success: true, data: user});
+    res.status(200).json({ success: true, data: user });
 })
 
 /* get other user posts */
 exports.getOtherUserPosts = asyncHandler(async (req, res, next) => {
-    const userId=req.params.userId;
+    const userId = req.params.userId;
     const posts = await Post.find({ user: userId }).populate([
         { path: 'user', select: 'name profilePic' },
         {
@@ -313,4 +319,69 @@ exports.logout = (asyncHandler(async (req, res) => {
     })
 
     res.status(200).send({ status: "success", data: {} })
+}));
+
+
+// User Activites 
+// Follow a User
+exports.followUser = (asyncHandler(async (req, res) => {
+    const userId = req.params.userId;
+
+    const userToFollow = await User.findById(userId).select('followers');
+    const myself = await User.findById(req.user._id).select('following');
+
+    // check if user exists
+    if (!userToFollow) {
+        return next(new errorHandler('User not found', 404));
+    }
+
+    let followedByUser = myself.following.some((userid) => userid.equals(userId));
+
+    if (!followedByUser) {
+        myself.following.push(userId);
+        await myself.save();
+    }
+
+    /* checking if user is already present in the followers list of usertoFollow */
+    followedByUser = userToFollow.followers.some((userid) => userid.equals(req.user._id));
+
+    if (!followedByUser) {
+        userToFollow.followers.push(req.user._id);
+        await userToFollow.save();
+    }
+
+    res.status(200).send({ status: "success", data: { myself, userToFollow } })
+}));
+
+
+// Unfollow a User
+exports.unfollowUser = (asyncHandler(async (req, res) => {
+
+    const userId = req.params.userId;
+
+    const userToFollow = await User.findById(userId).select('followers');
+    const myself = await User.findById(req.user._id).select('following');
+
+    // check if user exists
+    if (!userToFollow) {
+        return next(new errorHandler('User not found', 404));
+    }
+
+    let followedByUser = myself.following.some((userid) => userid.equals(userId));
+
+    if (followedByUser) {
+        myself.following.remove(userId);
+        await myself.save();
+    }
+
+    /* checking if user is already present in the followers list of usertoFollow */
+    followedByUser = userToFollow.followers.some((userid) => userid.equals(req.user._id));
+
+    if (followedByUser) {
+        userToFollow.followers.remove(req.user._id);
+        await userToFollow.save();
+    }
+
+    res.status(200).send({ status: "success", data: { myself, userToFollow } })
+
 }));
