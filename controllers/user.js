@@ -6,6 +6,7 @@ const crypto = require('crypto')
 const formidable = require('formidable');
 const cloudinary = require('../utils/Cloudinary');
 const Post = require('../models/Post');
+const Notification = require('../models/Notification');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -325,32 +326,18 @@ exports.logout = (asyncHandler(async (req, res) => {
 // User Activites 
 // Follow a User
 exports.followUser = (asyncHandler(async (req, res) => {
-    const userId = req.params.userId;
+    const userToFollow = await User.findById(req.params.userId);
 
-    const userToFollow = await User.findById(userId).select('followers');
-    const myself = await User.findById(req.user._id).select('following');
-
-    // check if user exists
     if (!userToFollow) {
         return next(new errorHandler('User not found', 404));
     }
 
-    let followedByUser = myself.following.some((userid) => userid.equals(userId));
+    const response = await Notification.create({
+        requestFrom: req.user._id,
+        requestTo: req.params.userId,
+    })
 
-    if (!followedByUser) {
-        myself.following.push(userId);
-        await myself.save();
-    }
-
-    /* checking if user is already present in the followers list of usertoFollow */
-    followedByUser = userToFollow.followers.some((userid) => userid.equals(req.user._id));
-
-    if (!followedByUser) {
-        userToFollow.followers.push(req.user._id);
-        await userToFollow.save();
-    }
-
-    res.status(200).send({ status: "success", data: { myself, userToFollow } })
+    res.status(200).send({ status: "success", data: response })
 }));
 
 
