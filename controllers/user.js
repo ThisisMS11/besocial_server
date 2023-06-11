@@ -144,10 +144,16 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
 });
 
+/* Get User information */
 exports.getUserInfo = asyncHandler(async (req, res, next) => {
-    if (req.user) {
-        res.status(200).json({ success: true, data: req.user });
-    }
+
+    const myself = await User.findById(req.user._id).select('-password').populate([
+        { path: 'following', select: 'name profilePic.url' },
+        { path: 'followers', select: 'name profilePic.url' },
+    ])
+    await myself.save();
+
+    res.status(200).json({ success: true, data: myself });
 })
 
 /* Get all users */
