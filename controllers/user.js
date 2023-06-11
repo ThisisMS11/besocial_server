@@ -325,17 +325,47 @@ exports.logout = (asyncHandler(async (req, res) => {
 
 // User Activites 
 // Follow a User
-exports.followUser = (asyncHandler(async (req, res) => {
+exports.followUser = (asyncHandler(async (req, res, next) => {
     const userToFollow = await User.findById(req.params.userId);
 
     if (!userToFollow) {
         return next(new errorHandler('User not found', 404));
     }
 
+    /* checking if whether our user already follows the userToFollow */
+    let followedByUser = req.user.following.some((userid) => userid.equals(req.params.userId));
+
+    if (followedByUser) {
+        return next(new errorHandler('Already Following', 300));
+    }
+
+    /* check whether any such notification already exists or not */
+
+    const followRequest = await Notification.findOne({ requestFrom: req.user._id, requestTo: req.params.userId, status: 'pending' });
+
+    if (followRequest) {
+        return next(new errorHandler('Request already sent.', 300));
+    }
+
+    /* create a notification for the userToFollow otherwise */
     const response = await Notification.create({
         requestFrom: req.user._id,
         requestTo: req.params.userId,
     })
+
+    /* sending an email to the userToFollow */
+    // const message = `${req.user.name} wants to follow you. Please check your notifications.`;
+
+    // try {
+    //     await SendEmail({
+    //         email: userToFollow.email,
+    //         subject: 'New Follower',
+    //         message
+    //     })
+    // } catch (err) {
+    //     console.log(err);
+    //     return next(new errorHandler('Email could not be sent', 500));
+    // }
 
     res.status(200).send({ status: "success", data: response })
 }));

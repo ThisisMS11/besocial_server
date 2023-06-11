@@ -119,7 +119,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 /* Get all posts */
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
     const posts = await Post.find().populate([
-        { path: 'user', select: 'name profilePic' },
+        { path: 'user', select: 'name profilePic followers' },
         {
             path: 'comments', select: 'content id',
             populate: {
@@ -195,19 +195,34 @@ exports.addNewComment = asyncHandler(async (req, res, next) => {
         next(new errorHandler(`No Comment Body found with id ${req.params.postId}`, 401));
     }
 
+    let newcontentbody;
     if (req.body) {
         /* Pushing the comment data into CommentModal */
-        comment.content.push({
+
+        newcontentbody = {
             user: req.user._id,
             comment: req.body.comment,
             likes: [],
             dislikes: []
-        });
+        };
+        comment.content.push(newcontentbody);
 
-        await comment.save();
+        
+
+        const newcomment = await comment.save();
+        console.log(newcomment.content[newcomment.content.length - 1])
+
+        newcontentbody.user={
+            _id:req.user._id,
+            profilePic : req.user.profilePic,
+            name:req.user.name,
+        }
+        newcontentbody._id = newcomment.content[newcomment.content.length - 1]._id;
     }
 
-    res.status(200).send({ success: true, comment: comment });
+
+
+    res.status(200).send({ success: true, comment: newcontentbody });
 })
 
 // like the comment
