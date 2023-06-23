@@ -64,21 +64,14 @@ const UserSchema = new mongoose.Schema({
 })
 
 
-// This sets up the middleware function to be executed before a document is saved to the UserSchema collection in MongoDB.
-UserSchema.pre('save', async function (next) {
-    //! run only if password is modified.
-    if (!this.isModified('password')) {
-        next();
-    }
-    const salt = bcrypt.genSaltSync(10);
-    this.password = await bcrypt.hash(this.password, salt);
-})
 
 /*In Mongoose, schema.methods is a property that allows you to add instance methods to your Mongoose models. Instance methods are methods that are available on individual documents retrieved from the database */
 
 /*to check whether user input password matches with that of database one or not. */
-UserSchema.methods.matchpassword = function (password) {
-    return bcrypt.compare(password, this.password);
+UserSchema.methods.matchpassword = async function (password) {
+
+    const result = await bcrypt.compare(password, this.password);
+    return result;
 }
 
 UserSchema.methods.getJwtToken = function () {

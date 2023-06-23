@@ -7,6 +7,7 @@ const formidable = require('formidable');
 const cloudinary = require('../utils/Cloudinary');
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
+const bcrypt = require('bcrypt');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -22,7 +23,8 @@ exports.login = asyncHandler(async (req, res, next) => {
     }
 
     //confirm password
-    const matchpasswordResult = user.matchpassword(password);
+    const matchpasswordResult = await user.matchpassword(password);
+
 
     if (!matchpasswordResult) {
         return next(new errorHandler('Invalid Input', 404));
@@ -84,6 +86,10 @@ exports.register = asyncHandler(async (req, res, next) => {
     }
 
     /* creating user in database */
+
+    const salt = bcrypt.genSaltSync(10);
+    password = bcrypt.hashSync(password, salt);
+
     user = await User.create({ name: name, email: email, unVerfiedEmail: email, password: password });
 
     /*Cloudinary Stuff to upload the profile Pic*/
@@ -120,7 +126,6 @@ exports.register = asyncHandler(async (req, res, next) => {
     /* Creating a url for verifying user email */
     const VerificationToken = user.getVerficationtoken();
 
-    await user.save({ validateBeforeSave: false });
 
     const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
@@ -134,6 +139,8 @@ exports.register = asyncHandler(async (req, res, next) => {
             subject: "Email Verification",
             message
         })
+        await user.save({ validateBeforeSave: false });
+
         res.status(200).json({ success: true, data: `Email Sent with URL : ${verificationUrl}` });
     } catch (error) {
         console.log(error);

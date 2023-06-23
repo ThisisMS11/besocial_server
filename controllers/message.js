@@ -64,3 +64,28 @@ exports.deleteMessage = asyncHandler(async (req, res, next) => {
         data: response
     });
 });
+
+exports.getUserMessages = asyncHandler(async (req, res, next) => {
+
+    const messages = await Messages.find({ sender: req.user.id }).populate([
+        { path: 'sender', select: 'name profilePic.url' },
+        { path: 'receiver', select: 'name profilePic.url' }
+    ])
+        .sort({ date: -1 });
+
+
+    let tempmessages = [];
+    const unorderedSet = new Set();
+
+    for (let i = 0; i < messages.length; i++) {
+        if (!unorderedSet.has(messages[i].receiver._id)) {
+            tempmessages.push(messages[i]);
+            unorderedSet.add(messages[i].receiver._id);
+        }
+    }
+    
+    res.status(200).json({
+        success: true,
+        data: tempmessages
+    });
+})
