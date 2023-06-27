@@ -5,7 +5,7 @@ const PostSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a title'],
         trim: true,
-        maxlength: 100
+        maxlength: 5000
     },
     user: {
         type: mongoose.Schema.ObjectId,

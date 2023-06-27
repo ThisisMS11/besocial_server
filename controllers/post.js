@@ -207,15 +207,15 @@ exports.addNewComment = asyncHandler(async (req, res, next) => {
         };
         comment.content.push(newcontentbody);
 
-        
+
 
         const newcomment = await comment.save();
         console.log(newcomment.content[newcomment.content.length - 1])
 
-        newcontentbody.user={
-            _id:req.user._id,
-            profilePic : req.user.profilePic,
-            name:req.user.name,
+        newcontentbody.user = {
+            _id: req.user._id,
+            profilePic: req.user.profilePic,
+            name: req.user.name,
         }
         newcontentbody._id = newcomment.content[newcomment.content.length - 1]._id;
     }

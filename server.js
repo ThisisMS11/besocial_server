@@ -1,13 +1,15 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const app = express();
-const PORT = 1983 || process.env.PORT
 const session = require('express-session');
 const MongoDBSession = require('connect-mongodb-session')(session);
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 const connectDB = require('./config/connectDB')
 dotenv.config({ path: './config/config.env' })
+
+const PORT = process.env.PORT || 8000
+
 
 /* importing routes here */
 const user = require('./routes/user');
@@ -77,7 +79,7 @@ const userSocketMap = new Map();
 io.on('connection', (socket) => {
     // Associate user ID with socket ID
     const { userId } = socket.handshake.query;
-    console.log('userId of the connected user : ',userId);
+    console.log('userId of the connected user : ', userId);
 
     userSocketMap.set(userId, socket.id);
 

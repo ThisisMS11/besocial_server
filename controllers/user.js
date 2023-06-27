@@ -8,6 +8,8 @@ const cloudinary = require('../utils/Cloudinary');
 const Post = require('../models/Post');
 const Notification = require('../models/Notification');
 const bcrypt = require('bcrypt');
+const { getDataUri } = require('../utils/DataUri');
+const { NONAME } = require('dns');
 
 exports.login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body;
@@ -236,8 +238,10 @@ exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
         return next(new errorHandler('Invalid Input', 404));
     }
     const VerificationToken = user.getVerficationtoken();
+    -
+        await user.save({ validateBeforeSave: false });
 
-    await user.save({ validateBeforeSave: false });
+    // console.log({ url: process.env.LOCAL_SERVER_URL })
 
     const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
@@ -409,3 +413,91 @@ exports.unfollowUser = (asyncHandler(async (req, res) => {
     res.status(200).send({ status: "success", data: { myself, userToFollow } })
 
 }));
+
+/* edit the user profile routes (name, email) specifically*/
+exports.updateUserInfo = asyncHandler(async (req, res, next) => {
+    let { name, email } = req.body;
+
+    if (!name && !newpassword && !email) {
+        return next(new errorHandler('Please provide some data to update', 400));
+    }
+
+    /* only change if values don't match */
+    if (req.user.name !== name) {
+        req.user.name = name || req.user.name;
+    }
+
+    if (req.user.email !== email) {
+        req.user.email = email || req.user.email;
+        req.user.unVerfiedEmail = email || req.user.unVerfiedEmail;
+        req.user.isVerified = false;
+
+        /* Creating a url for verifying user email */
+        const VerificationToken = req.user.getVerficationtoken();
+
+        await req.user.save({ validateBeforeSave: false });
+
+        const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
+
+        const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
+
+        // Sending the url to user email
+
+        try {
+            await SendEmail({
+                email: req.user.unVerfiedEmail,
+                subject: "Email Verification",
+                message
+            })
+            await req.user.save({ validateBeforeSave: false });
+
+            return res.status(200).json({ success: true, data: `Email Sent with URL : ${verificationUrl}` });
+        } catch (error) {
+            console.log(error);
+            req.user.verificationToken = undefined;
+            req.user.verificationTokenExpire = undefined;
+            // user will still be saved but with unverified Email.
+            await req.user.save({ validateBeforeSave: false });
+            return next(new errorHandler('Email could not be sent User Info Saved Securely', 500));
+        }
+    }
+
+    await req.user.save();
+
+    res.status(200).json({ success: true, data: req.user });
+})
+
+
+/* update profile pic */
+exports.updateProfilePic = asyncHandler(async (req, res, next) => {
+    let file = req.files;
+    console.log(file);
+
+    // if file exists
+    file = file[0];
+
+    if (!file.mimetype.startsWith('image')) {
+        next(new errorHandler(`Please upload an image file`, 401));
+    }
+
+    try {
+        /* first destroy the previous profile pic */
+        const deleteResponse = await cloudinary.uploader.destroy(req.user.profilePic.public_id);
+
+        console.log({ deleteResponse });
+
+        const filedata = getDataUri(file);
+
+        result = await cloudinary.uploader.upload(filedata.content, {
+            folder: 'profilePic'
+        })
+
+        req.user.profilePic = { public_id: result.public_id, url: result.secure_url }
+
+        await req.user.save();
+        res.status(200).json({ success: true, data: req.user });
+
+    } catch (err) {
+        console.log('cloudinary error : ', err);
+    }
+})

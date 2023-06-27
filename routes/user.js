@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authProtect')
-const { login, register, logout, getUserInfo, VerifyEmail, resendEmailVerification, UpdateVerificationToken, getUserPosts, getAllUsers, getOtherUserInfo, getOtherUserPosts,followUser,unfollowUser } = require('../controllers/user');
+const { login, register, logout, getUserInfo, VerifyEmail, resendEmailVerification, UpdateVerificationToken, getUserPosts, getAllUsers, getOtherUserInfo, getOtherUserPosts, followUser, unfollowUser, updateUserInfo, updateProfilePic } = require('../controllers/user');
+const { mediaUpload } = require('../middleware/multer');
 
 
 router.post('/login', login);
@@ -32,5 +33,8 @@ router.route('/other/posts/:userId').get(protect, getOtherUserPosts);
 router.route('/posts').get(protect, getUserPosts);
 
 
+/* Edit user profile */
+router.route('/updateinfo').put(protect, updateUserInfo);
+router.route('/updateProfilePic').put(protect, mediaUpload, updateProfilePic);
 
 module.exports = router;
