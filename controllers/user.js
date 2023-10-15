@@ -129,7 +129,7 @@ exports.register = asyncHandler(async (req, res, next) => {
     const VerificationToken = user.getVerficationtoken();
 
 
-    const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
+    const verificationUrl = `${process.env.SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
     const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 
@@ -238,12 +238,13 @@ exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
         return next(new errorHandler('Invalid Input', 404));
     }
     const VerificationToken = user.getVerficationtoken();
-    -
-        await user.save({ validateBeforeSave: false });
 
-    // console.log({ url: process.env.LOCAL_SERVER_URL })
 
-    const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
+    await user.save({ validateBeforeSave: false });
+
+    // console.log({ url: process.env.SERVER_URL })
+
+    const verificationUrl = `${process.env.SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
     const message = `Please verify your email by clicking on the link below: \n ${verificationUrl}`;
 
@@ -264,6 +265,7 @@ exports.resendEmailVerification = asyncHandler(async (req, res, next) => {
     }
 });
 
+/* verifying the email */
 exports.VerifyEmail = asyncHandler(async (req, res, next) => {
     // this is to verify our email and setting isVerified for our user to true.
 
@@ -277,6 +279,7 @@ exports.VerifyEmail = asyncHandler(async (req, res, next) => {
     // const user = await User.findOne({ verificationToken: verificationToken }).select('+password')
 
     // If no user found with that token
+
     if (!user) {
         return next(new errorHandler('Invalid Token', 400));
     }
@@ -295,7 +298,16 @@ exports.VerifyEmail = asyncHandler(async (req, res, next) => {
     }
 
     await user.save({ validateBeforeSave: false });
-    sendTokenResponse(user, 200, res);
+    const token = user.getJwtToken();
+
+    // const options = {
+    //     expires: new Date(
+    //         Date.now() + 10 * 24 * 60 * 60 * 1000
+    //     ),
+    //     httpOnly: true,
+    // }
+    const redirectUrl = `${process.env.WEB_APP_URL}/verify/?token=${token}`;
+    res.redirect(redirectUrl);
 });
 
 /* to update the expired verification token */
@@ -437,7 +449,7 @@ exports.updateUserInfo = asyncHandler(async (req, res, next) => {
 
         await req.user.save({ validateBeforeSave: false });
 
-        const verificationUrl = `${process.env.LOCAL_SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
+        const verificationUrl = `${process.env.SERVER_URL}/api/v1/user/verify/${VerificationToken}`;
 
         const message = `Please verify your email by clicking on the link below: \n\n ${verificationUrl}`;
 

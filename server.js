@@ -26,7 +26,7 @@ app.use(cors());
 
 const { Server } = require('socket.io');
 const server = require('http').createServer(app);
-// const END_POINT = process.env.END_POINT_LOCAL
+// const END_POINT = process.env.WEB_APP_URL
 
 // app.use(function (req, res, next) {
 //     res.header("Access-Control-Allow-Origin", END_POINT);
